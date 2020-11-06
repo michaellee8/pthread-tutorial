@@ -1,10 +1,22 @@
 #include <math.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
+float single_thread_l2_norm(const float *vec, size_t len);
+
 /* You may need to define struct here */
+
+struct l2_norm_in {
+  const float *vec;
+  size_t len;
+};
+
+struct l2_norm_out {
+  float ret;
+};
 
 /*!
  * \brief subroutine function
@@ -13,6 +25,11 @@
  * \return void*, return pointer
  */
 void *l2_norm(void *arg) { /* TODO: Your code here */
+  struct l2_norm_in in = *(struct l2_norm_in *)arg;
+  struct l2_norm_out *out = malloc(sizeof(struct l2_norm_out));
+  float ret = single_thread_l2_norm(in.vec, in.len);
+  out->ret = ret;
+  return (void *)out;
 }
 
 /*!
@@ -25,6 +42,8 @@ void *l2_norm(void *arg) { /* TODO: Your code here */
  */
 float multi_thread_l2_norm(const float *vec, size_t len,
                            int k) { /* TODO: your code here */
+                           int l = len/k;
+  return 0.0;
 }
 
 // baseline function
