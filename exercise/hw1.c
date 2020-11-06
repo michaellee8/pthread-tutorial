@@ -15,7 +15,7 @@ struct l2_norm_in {
 };
 
 struct l2_norm_out {
-  float ret;
+  double ret;
 };
 
 /*!
@@ -27,8 +27,12 @@ struct l2_norm_out {
 void *l2_norm(void *arg) { /* TODO: Your code here */
   struct l2_norm_in in = *(struct l2_norm_in *)arg;
   struct l2_norm_out *out = malloc(sizeof(struct l2_norm_out));
-  float ret = single_thread_l2_norm(in.vec, in.len);
+  double ret = 0.0f;
+  for (int i = 0; i < in.len; ++i) {
+    ret += in.vec[i] * in.vec[i];
+  }
   out->ret = ret;
+  free(arg);
   return (void *)out;
 }
 
@@ -42,8 +46,30 @@ void *l2_norm(void *arg) { /* TODO: Your code here */
  */
 float multi_thread_l2_norm(const float *vec, size_t len,
                            int k) { /* TODO: your code here */
-                           int l = len/k;
-  return 0.0;
+  int n = len / k;
+  int rc;
+  pthread_t p[k];
+  double sum = 0.0f;
+  for (int i = 0; i < k; ++i) {
+    struct l2_norm_in *in = malloc(sizeof(struct l2_norm_in));
+    in->len = n;
+    in->vec = vec + i * n;
+    if ((rc = pthread_create(&p[i], NULL, l2_norm, in)) != 0) {
+      fprintf(stderr, "error: creation failed. rc=%d\n", rc);
+      exit(1);
+    }
+  }
+  for (int i = 0; i < k; ++i) {
+    struct l2_norm_out **out = malloc(sizeof(struct l2_norm_out *));
+    if ((rc = pthread_join(p[i], (void **)out)) != 0) {
+      fprintf(stderr, "error: join failed. rc=%d\n", rc);
+      exit(1);
+    }
+    sum += (*out)->ret;
+    free(*out);
+    free(out);
+  }
+  return sqrt(sum);
 }
 
 // baseline function
