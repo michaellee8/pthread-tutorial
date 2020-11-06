@@ -1,0 +1,6 @@
+#!/bin/sh
+make clean
+make
+./exercise/hw1 10240000 4
+./exercise/hw2 1024000000 4
+./exercise/hw3

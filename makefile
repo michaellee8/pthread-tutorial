@@ -1,4 +1,3 @@
-DEBUG=1
 CC=gcc
 CFLAGS= -pthread -Wall -lm
 
