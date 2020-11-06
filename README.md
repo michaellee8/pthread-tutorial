@@ -1,3 +1,5 @@
+[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/vycezhong/pthread-tutorial)
+
 # pthread tutorial
 
 Code Examples of COMP3230 Principles of Operating Systems (2020 Fall) at The University of Hong Kong.
