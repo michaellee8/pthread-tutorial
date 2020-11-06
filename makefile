@@ -3,7 +3,7 @@ CC=gcc
 CFLAGS= -pthread -Wall -lm
 
 ifeq ($(DEBUG), 1)
-	CFLAGS += -g
+	CFLAGS += -g -fsanitize=address
 else
 	CFLAGS += -O3
 endif 
