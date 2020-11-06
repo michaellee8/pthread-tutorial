@@ -1,11 +1,21 @@
+#define _GNU_SOURCE
 #include <assert.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/syscall.h>
+#include <sys/sysinfo.h>
 #include <time.h>
+#include <unistd.h>
 
 /* You may need to define struct here */
+
+struct mt_memcpy_in {
+  const void *src;
+  void *dst;
+  size_t size;
+};
 
 /*!
  * \brief subroutine function
@@ -14,6 +24,14 @@
  * \return void*, return pointer
  */
 void *mt_memcpy(void *arg) { /* TODO: Your code here */
+  struct mt_memcpy_in in = *(struct mt_memcpy_in *)arg;
+  float *s = (float *)in.src;
+  float *d = (float *)in.dst;
+  for (size_t i = 0; i < in.size / 4; ++i) {
+    d[i] = s[i];
+  }
+  free(arg);
+  return NULL;
 }
 
 /*!
@@ -26,6 +44,25 @@ void *mt_memcpy(void *arg) { /* TODO: Your code here */
  */
 void multi_thread_memcpy(void *dst, const void *src, size_t size,
                          int k) { /* TODO: your code here */
+  int n = size / k;
+  int rc;
+  pthread_t p[k];
+  for (int i = 0; i < k; ++i) {
+    struct mt_memcpy_in *in = malloc(sizeof(struct mt_memcpy_in));
+    in->src = src + i * n;
+    in->dst = dst + 1 * n;
+    in->size = n;
+    if ((rc = pthread_create(&p[i], NULL, mt_memcpy, in)) != 0) {
+      fprintf(stderr, "error: creation failed. rc=%d\n", rc);
+      exit(1);
+    }
+  }
+  for (int i = 0; i < k; ++i) {
+    if ((rc = pthread_join(p[i], NULL) != 0)) {
+      fprintf(stderr, "error: join failed. rc=%d\n", rc);
+      exit(1);
+    }
+  }
 }
 
 /*!
@@ -39,6 +76,59 @@ void multi_thread_memcpy(void *dst, const void *src, size_t size,
  */
 void multi_thread_memcpy_with_affinity(void *dst, const void *src, size_t size,
                                        int k) { /* TODO: your code here */
+  int n = size / k;
+  int rc;
+  pthread_t p[k];
+  cpu_set_t cpu_set[k];
+  pthread_attr_t attr[k];
+  for (int i = 0; i < k; ++i) {
+    rc = pthread_attr_init(&attr[i]);
+    assert(rc == 0);
+  }
+
+  int cpu;
+  rc = syscall(SYS_getcpu, &cpu, NULL, NULL);
+  assert(rc == 0);
+  printf("Main thread runs on CPU %d\n", cpu);
+  int start = cpu % 2;
+
+  printf("Set affinity mask to include CPUs (%d, %d, %d, ...  %s)\n", start,
+         start + 2, start + 4, start ? "2n+1" : "2n");
+  size_t nprocs = get_nprocs();
+  int i = 0, j = start;
+  while (i < k) {
+    if (j == cpu) {
+      j += 2;
+      continue;
+    }
+    if (j >= nprocs) {
+      j = start;
+    }
+
+    CPU_ZERO(&cpu_set[i]);
+    CPU_SET(j, &cpu_set[i]);
+    pthread_attr_setaffinity_np(&attr[i], sizeof(cpu_set_t), &cpu_set[i]);
+    ++i;
+    j += 2;
+  }
+
+  for (int i = 0; i < k; ++i) {
+    struct mt_memcpy_in *in = malloc(sizeof(struct mt_memcpy_in));
+    in->src = src + i * n;
+    in->dst = dst + 1 * n;
+    in->size = n;
+    if ((rc = pthread_create(&p[i], &attr[i], mt_memcpy, in)) != 0) {
+      fprintf(stderr, "error: creation failed. rc=%d\n", rc);
+      exit(1);
+    }
+  }
+  for (int i = 0; i < k; ++i) {
+    if ((rc = pthread_join(p[i], NULL) != 0)) {
+      fprintf(stderr, "error: join failed. rc=%d\n", rc);
+      exit(1);
+    }
+    pthread_attr_destroy(&attr[i]);
+  }
 }
 
 void single_thread_memcpy(void *dst, const void *src, size_t size) {
