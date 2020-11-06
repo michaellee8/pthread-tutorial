@@ -1,6 +1,20 @@
 #!/bin/sh
+echo "Recompiling all targets"
+echo
 make clean
 make
+echo
+echo
+echo "Running exercise 1"
+echo
 ./exercise/hw1 10240000 4
+echo
+echo
+echo "Running exercise 2"
+echo
 ./exercise/hw2 1024000000 4
+echo
+echo
+echo "Running exercise 3"
+echo
 ./exercise/hw3
