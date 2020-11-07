@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdatomic.h>
 
 typedef struct _context_t {
   uint64_t id;
@@ -12,17 +13,26 @@ typedef struct _context_t {
   bool initialized;
 } context_t;
 
-context_t *ctx = NULL;
+pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
+
+_Atomic(context_t*) ctx = NULL;
 
 // singleton
 context_t *get_instance() {
+  atomic_thread_fence(memory_order_acquire);
   if (ctx == NULL) {
-    ctx = (context_t *)malloc(sizeof(context_t));
-    assert(ctx != NULL);
-    ctx->initialized = false;
+    pthread_mutex_lock(&mut);
+    if (ctx == NULL){
+      ctx = (context_t *)malloc(sizeof(context_t)); 
+      ctx->initialized = false;
+      atomic_thread_fence(memory_order_release);
+    }
+    pthread_mutex_unlock(&mut);
   }
   return ctx;
 }
+
+
 
 int id = 0;
 
